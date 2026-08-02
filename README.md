@@ -97,9 +97,9 @@ Double-click `index.html` or drag it into your browser. No terminal, server, or 
 
 **Option 2 — Python HTTP Server**
 ```bash
-python -m http.server 8085
+python -m http.server 3000
 ```
-Then open `http://localhost:8085` in your browser.
+Then open `http://localhost:3000` in your browser.
 
 ---
 
