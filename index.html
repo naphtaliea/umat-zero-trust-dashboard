@@ -1,0 +1,1979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UMaT Zero Trust Access Monitoring Dashboard | Tarkwa & Takoradi</title>
+  <style>
+    /* ==========================================================================
+       RESET & BASE STYLES
+       ========================================================================== */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: #0b0f19;
+      color: #f8fafc;
+      min-height: 100vh;
+      padding: 20px;
+      line-height: 1.5;
+      overflow-x: hidden;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+
+    /* ==========================================================================
+       HEADER & NAVIGATION
+       ========================================================================== */
+    .dashboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #1e293b;
+    }
+
+    .header-title-box {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .umat-logo-icon {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, #d97706, #059669);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 0 16px rgba(217, 119, 6, 0.35);
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: #f8fafc;
+    }
+
+    .subtitle {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #1e293b;
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px solid #334155;
+      font-size: 12px;
+      font-weight: 600;
+      color: #38bdf8;
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #10b981;
+      box-shadow: 0 0 8px #10b981;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(1.2); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    .btn {
+      background: #1e293b;
+      color: #f8fafc;
+      border: 1px solid #334155;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      background: #334155;
+      border-color: #475569;
+    }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.15);
+      color: #fca5a5;
+      border-color: rgba(239, 68, 68, 0.4);
+    }
+    .btn-danger:hover {
+      background: rgba(239, 68, 68, 0.3);
+      border-color: #ef4444;
+    }
+
+    .btn-primary {
+      background: #0284c7;
+      color: #ffffff;
+      border-color: #38bdf8;
+    }
+    .btn-primary:hover {
+      background: #0369a1;
+    }
+
+    /* ==========================================================================
+       SECTION 1: CAMPUS FILTER BAR
+       ========================================================================== */
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #111827;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 10px 16px;
+      margin-bottom: 20px;
+    }
+
+    .filter-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .campus-pills {
+      display: flex;
+      gap: 8px;
+    }
+
+    .campus-pill {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #94a3b8;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .campus-pill:hover {
+      border-color: #475569;
+      color: #f8fafc;
+    }
+
+    .campus-pill.active {
+      background: linear-gradient(135deg, #0284c7, #0d9488);
+      border-color: #38bdf8;
+      color: #ffffff;
+      box-shadow: 0 0 12px rgba(2, 132, 199, 0.3);
+    }
+
+    .filter-info {
+      margin-left: auto;
+      font-size: 11px;
+      color: #64748b;
+      font-family: monospace;
+    }
+
+    /* ==========================================================================
+       GRID LAYOUT & CARDS
+       ========================================================================== */
+    .grid {
+      display: grid;
+      gap: 20px;
+    }
+
+    .grid-cols-4 { grid-template-columns: repeat(4, 1fr); }
+    .grid-cols-12 { grid-template-columns: repeat(12, 1fr); }
+
+    .col-span-12 { grid-column: span 12; }
+    .col-span-8 { grid-column: span 8; }
+    .col-span-7 { grid-column: span 7; }
+    .col-span-5 { grid-column: span 5; }
+    .col-span-4 { grid-column: span 4; }
+
+    @media (max-width: 1200px) {
+      .col-span-8, .col-span-7, .col-span-5, .col-span-4 {
+        grid-column: span 12;
+      }
+      .grid-cols-4 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 640px) {
+      .grid-cols-4 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: #111827;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 18px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+      position: relative;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ==========================================================================
+       SECTION 2: KPI TILES
+       ========================================================================== */
+    .kpi-tile {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .kpi-value {
+      font-size: 28px;
+      font-weight: 800;
+      color: #f8fafc;
+      margin: 8px 0 4px 0;
+    }
+
+    .kpi-sub {
+      font-size: 11px;
+      color: #64748b;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .kpi-breakdown {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .campus-badge-sm {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: #0f172a;
+      border: 1px solid #334155;
+    }
+
+    .badge-tarkwa { color: #38bdf8; border-color: rgba(56, 189, 248, 0.3); }
+    .badge-takoradi { color: #f59e0b; border-color: rgba(245, 158, 11, 0.3); }
+
+    .kpi-allow { border-left: 4px solid #10b981; }
+    .kpi-allow .kpi-value { color: #10b981; }
+    .kpi-mfa { border-left: 4px solid #f59e0b; }
+    .kpi-mfa .kpi-value { color: #f59e0b; }
+    .kpi-deny { border-left: 4px solid #ef4444; }
+    .kpi-deny .kpi-value { color: #ef4444; }
+    .kpi-total { border-left: 4px solid #38bdf8; }
+    .kpi-total .kpi-value { color: #38bdf8; }
+
+    /* ==========================================================================
+       SECTION 3: NIST SP 800-207 PIPELINE DIAGRAM
+       ========================================================================== */
+    .pipeline-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 20px 16px;
+      position: relative;
+      overflow: hidden;
+      min-height: 180px;
+    }
+
+    .pipeline-node {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 12px 14px;
+      width: 165px;
+      text-align: center;
+      position: relative;
+      z-index: 2;
+      transition: all 0.3s ease;
+    }
+
+    .pipeline-node:hover {
+      border-color: #38bdf8;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
+    }
+
+    .node-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #38bdf8;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+
+    .node-desc {
+      font-size: 11px;
+      color: #94a3b8;
+    }
+
+    .node-badge {
+      display: inline-block;
+      font-size: 9px;
+      background: #0f172a;
+      color: #64748b;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-top: 6px;
+      border: 1px solid #334155;
+    }
+
+    .pdp-box {
+      border: 1px dashed #0284c7;
+      background: rgba(2, 132, 199, 0.05);
+      border-radius: 10px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 210px;
+    }
+
+    .pdp-subnode {
+      background: #1e293b;
+      border: 1px solid #334155;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      text-align: center;
+    }
+    .pdp-subnode span {
+      display: block;
+      font-size: 9px;
+      color: #94a3b8;
+    }
+
+    .pipeline-connector {
+      flex: 1;
+      height: 2px;
+      background: #334155;
+      position: relative;
+      margin: 0 8px;
+    }
+
+    .connector-line {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, transparent, #38bdf8, transparent);
+      background-size: 200% 100%;
+      animation: flowLine 2s linear infinite;
+    }
+
+    @keyframes flowLine {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    .pipeline-active-tag {
+      position: absolute;
+      top: 8px;
+      right: 12px;
+      font-size: 10px;
+      font-family: monospace;
+      color: #10b981;
+      background: rgba(16, 185, 129, 0.1);
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    /* ==========================================================================
+       SECTION 4: CANVAS CHARTS
+       ========================================================================== */
+    .chart-container {
+      width: 100%;
+      height: 180px;
+      position: relative;
+    }
+
+    canvas {
+      width: 100% !important;
+      height: 100% !important;
+      display: block;
+    }
+
+    /* ==========================================================================
+       SECTION 5: LIVE ACCESS STREAM TABLE
+       ========================================================================== */
+    .table-wrapper {
+      max-height: 330px;
+      overflow-y: auto;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+    }
+
+    .stream-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      text-align: left;
+    }
+
+    .stream-table th {
+      background: #0f172a;
+      color: #64748b;
+      padding: 10px 12px;
+      font-weight: 700;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      border-bottom: 1px solid #1e293b;
+      text-transform: uppercase;
+      font-size: 10px;
+      letter-spacing: 0.5px;
+    }
+
+    .stream-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #162032;
+      color: #cbd5e1;
+      white-space: nowrap;
+    }
+
+    .stream-table tbody tr {
+      transition: background-color 0.2s ease;
+    }
+
+    .stream-table tbody tr:hover {
+      background-color: #1e293b;
+    }
+
+    .stream-table tbody tr.new-row {
+      animation: flashRow 0.8s ease-out;
+    }
+
+    @keyframes flashRow {
+      0% { background-color: rgba(56, 189, 248, 0.25); }
+      100% { background-color: transparent; }
+    }
+
+    .stream-table tbody tr.cross-campus-row {
+      background: rgba(139, 92, 246, 0.08);
+    }
+
+    /* Badges & Tags */
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+
+    .badge-allow {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+
+    .badge-mfa {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.4);
+    }
+
+    .badge-deny {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+
+    .badge-cross {
+      background: rgba(139, 92, 246, 0.2);
+      color: #c084fc;
+      border: 1px solid rgba(139, 92, 246, 0.4);
+      font-size: 9px;
+    }
+
+    .score-chip {
+      font-family: monospace;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #0f172a;
+      border: 1px solid #334155;
+    }
+
+    /* ==========================================================================
+       SECTION 6: SECURITY ALERTS PANEL
+       ========================================================================== */
+    .alerts-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 330px;
+      overflow-y: auto;
+    }
+
+    .alert-card {
+      background: rgba(239, 68, 68, 0.05);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      border-left: 4px solid #ef4444;
+      border-radius: 6px;
+      padding: 10px 12px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      animation: slideIn 0.3s ease;
+    }
+
+    .alert-card.warning {
+      background: rgba(245, 158, 11, 0.05);
+      border-color: rgba(245, 158, 11, 0.2);
+      border-left-color: #f59e0b;
+    }
+
+    .alert-card.cross-campus {
+      background: rgba(139, 92, 246, 0.05);
+      border-color: rgba(139, 92, 246, 0.2);
+      border-left-color: #8b5cf6;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .alert-icon {
+      font-size: 16px;
+      margin-top: 2px;
+    }
+
+    .alert-content {
+      flex: 1;
+    }
+
+    .alert-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #f8fafc;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .alert-time {
+      font-size: 10px;
+      color: #64748b;
+      font-weight: normal;
+    }
+
+    .alert-desc {
+      font-size: 11px;
+      color: #cbd5e1;
+      margin-top: 2px;
+    }
+
+    .alert-action {
+      font-size: 10px;
+      color: #94a3b8;
+      margin-top: 4px;
+      font-style: italic;
+    }
+
+    /* ==========================================================================
+       SECTION 7: DEVICE POSTURE PANEL (Grouped by Campus)
+       ========================================================================== */
+    .posture-group-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #38bdf8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 10px 0 6px 0;
+      padding-bottom: 4px;
+      border-bottom: 1px solid #1e293b;
+    }
+
+    .posture-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .posture-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .posture-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+    }
+
+    .posture-name {
+      color: #f8fafc;
+      font-weight: 600;
+    }
+
+    .posture-status {
+      font-size: 11px;
+    }
+
+    .posture-bar-bg {
+      height: 8px;
+      background: #0f172a;
+      border-radius: 4px;
+      overflow: hidden;
+      border: 1px solid #1e293b;
+    }
+
+    .posture-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.4s ease;
+    }
+
+    /* ==========================================================================
+       SECTION 8: INTERACTIVE POLICY TESTER
+       ========================================================================== */
+    .tester-form {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .form-group.full-width {
+      grid-column: span 2;
+    }
+
+    label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+    }
+
+    select {
+      background: #0f172a;
+      border: 1px solid #334155;
+      color: #f8fafc;
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      outline: none;
+    }
+
+    select:focus {
+      border-color: #38bdf8;
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    input[type="checkbox"] {
+      accent-color: #0284c7;
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+
+    .checkbox-label {
+      font-size: 12px;
+      color: #cbd5e1;
+      cursor: pointer;
+      text-transform: none;
+    }
+
+    .tester-result-box {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 14px;
+      margin-top: 12px;
+    }
+
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #1e293b;
+      margin-bottom: 10px;
+    }
+
+    .score-dial-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .score-big {
+      font-size: 32px;
+      font-weight: 800;
+      font-family: monospace;
+    }
+
+    .verdict-tag {
+      font-size: 14px;
+      font-weight: 800;
+      padding: 4px 12px;
+      border-radius: 6px;
+      letter-spacing: 0.5px;
+    }
+
+    .factor-breakdown {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .factor-item {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      background: #1e293b;
+    }
+
+    .factor-positive { color: #34d399; }
+    .factor-negative { color: #f87171; }
+    .factor-campus-penalty { color: #c084fc; font-weight: 700; }
+
+    .factor-pts {
+      font-family: monospace;
+      font-weight: 700;
+    }
+
+    .text-muted { color: #64748b; }
+    .mono { font-family: monospace; }
+  </style>
+</head>
+<body>
+
+  <!-- ==========================================================================
+       HEADER
+       ========================================================================== -->
+  <header class="dashboard-header">
+    <div class="header-title-box">
+      <div class="umat-logo-icon">⛏️</div>
+      <div>
+        <h1>UMaT Zero Trust Access Monitoring SOC</h1>
+        <div class="subtitle">University of Mines and Technology • Tarkwa (Main) & Takoradi Campuses • NIST SP 800-207 Architecture</div>
+      </div>
+    </div>
+
+    <div class="header-controls">
+      <div class="status-pill">
+        <div class="pulse-dot" id="liveDot"></div>
+        <span id="liveStatusText">LIVE STREAMING</span>
+      </div>
+      <button class="btn" id="btnTogglePause" onclick="togglePause()">
+        ⏸️ Pause Stream
+      </button>
+      <button class="btn btn-danger" onclick="triggerAttackScenario()">
+        ⚡ Inject Cross-Campus Threat Attack
+      </button>
+    </div>
+  </header>
+
+  <!-- ==========================================================================
+       SECTION 1: CAMPUS FILTER BAR (THE DEFINING FEATURE)
+       ========================================================================== -->
+  <div class="filter-bar">
+    <span class="filter-label">🎓 Select Campus View:</span>
+    <div class="campus-pills">
+      <button class="campus-pill active" id="btnFilterBoth" onclick="setCampusFilter('BOTH')">
+        🏫 All Campuses (Combined)
+      </button>
+      <button class="campus-pill" id="btnFilterTarkwa" onclick="setCampusFilter('Tarkwa')">
+        ⛏️ Tarkwa Campus (Main)
+      </button>
+      <button class="campus-pill" id="btnFilterTakoradi" onclick="setCampusFilter('Takoradi')">
+        ⚓ Takoradi Campus
+      </button>
+    </div>
+    <div class="filter-info" id="filterStatusInfo">
+      Distance: ~90 km • Inter-Campus Fiber Link Active
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       SECTION 2: KPI TILES
+       ========================================================================== -->
+  <section class="grid grid-cols-4" style="margin-bottom: 20px;">
+    <div class="card kpi-tile kpi-total">
+      <div class="card-title">Total Access Requests</div>
+      <div class="kpi-value" id="kpiTotalReq">0</div>
+      <div class="kpi-sub">
+        <span>Evaluated by PDP</span>
+      </div>
+      <div class="kpi-breakdown" id="breakdownTotal">
+        <span class="campus-badge-sm badge-tarkwa">Tarkwa: 0</span>
+        <span class="campus-badge-sm badge-takoradi">Takoradi: 0</span>
+      </div>
+    </div>
+
+    <div class="card kpi-tile kpi-allow">
+      <div class="card-title">Allowed Access</div>
+      <div class="kpi-value" id="kpiAllowed">0</div>
+      <div class="kpi-sub">
+        <span class="badge badge-allow" id="kpiAllowPct">0%</span>
+        <span>Score ≥ 70</span>
+      </div>
+      <div class="kpi-breakdown" id="breakdownAllow">
+        <span class="campus-badge-sm badge-tarkwa">Tarkwa: 0</span>
+        <span class="campus-badge-sm badge-takoradi">Takoradi: 0</span>
+      </div>
+    </div>
+
+    <div class="card kpi-tile kpi-mfa">
+      <div class="card-title">Step-Up MFA Challenges</div>
+      <div class="kpi-value" id="kpiMfa">0</div>
+      <div class="kpi-sub">
+        <span class="badge badge-mfa" id="kpiMfaPct">0%</span>
+        <span>Score 45 – 69</span>
+      </div>
+      <div class="kpi-breakdown" id="breakdownMfa">
+        <span class="campus-badge-sm badge-tarkwa">Tarkwa: 0</span>
+        <span class="campus-badge-sm badge-takoradi">Takoradi: 0</span>
+      </div>
+    </div>
+
+    <div class="card kpi-tile kpi-deny">
+      <div class="card-title">Denied Access</div>
+      <div class="kpi-value" id="kpiDenied">0</div>
+      <div class="kpi-sub">
+        <span class="badge badge-deny" id="kpiDenyPct">0%</span>
+        <span>Score < 45</span>
+      </div>
+      <div class="kpi-breakdown" id="breakdownDeny">
+        <span class="campus-badge-sm badge-tarkwa">Tarkwa: 0</span>
+        <span class="campus-badge-sm badge-takoradi">Takoradi: 0</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       SECTION 3: NIST PIPELINE DIAGRAM & ROLLING RPS CANVAS CHART
+       ========================================================================== -->
+  <section class="grid grid-cols-12" style="margin-bottom: 20px;">
+    <!-- NIST SP 800-207 Architecture Pipeline -->
+    <div class="card col-span-7">
+      <div class="card-header">
+        <div class="card-title">
+          🏛️ NIST SP 800-207 Zero Trust Pipeline (UMaT Context)
+        </div>
+        <div class="pipeline-active-tag" id="pipelineActiveTag">Active PEP Evaluation: IDLE</div>
+      </div>
+      <div class="pipeline-container">
+        <!-- Subject Node -->
+        <div class="pipeline-node" id="nodeSubject">
+          <div class="node-title">Subject</div>
+          <div class="node-desc">User & Endpoint</div>
+          <div class="node-badge" id="nodeSubjectDetail">Tarkwa / Takoradi</div>
+        </div>
+
+        <div class="pipeline-connector">
+          <div class="connector-line"></div>
+        </div>
+
+        <!-- PEP Node -->
+        <div class="pipeline-node" id="nodePEP">
+          <div class="node-title">PEP</div>
+          <div class="node-desc">Policy Enforcement Point</div>
+          <div class="node-badge">Interdict & Gate</div>
+        </div>
+
+        <div class="pipeline-connector">
+          <div class="connector-line"></div>
+        </div>
+
+        <!-- PDP Component (PE + PA) -->
+        <div class="pdp-box">
+          <div style="font-size: 10px; font-weight: 700; color: #0284c7; text-align: center; text-transform: uppercase;">
+            Policy Decision Point (PDP)
+          </div>
+          <div class="pdp-subnode" id="nodePE">
+            <strong>Policy Engine (PE)</strong>
+            <span>Evaluates Campus Context Score</span>
+          </div>
+          <div class="pdp-subnode" id="nodePA">
+            <strong>Policy Administrator (PA)</strong>
+            <span>Issues Allow / MFA / Deny</span>
+          </div>
+        </div>
+
+        <div class="pipeline-connector">
+          <div class="connector-line"></div>
+        </div>
+
+        <!-- Resource Node -->
+        <div class="pipeline-node" id="nodeResource">
+          <div class="node-title">Resource</div>
+          <div class="node-desc">Central / Campus-Local</div>
+          <div class="node-badge" id="nodeResourceDetail">Tiers 1 – 3</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rolling RPS Canvas Chart -->
+    <div class="card col-span-5">
+      <div class="card-header">
+        <div class="card-title">
+          📈 UMaT Traffic Stream (60-Second Window)
+        </div>
+        <div style="font-size: 11px; color: #64748b;" id="rpsCounter">0.0 req/sec</div>
+      </div>
+      <div class="chart-container">
+        <canvas id="rpsChart"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       SECTION 4 & 5: LIVE ACCESS STREAM & SECURITY ALERTS
+       ========================================================================== -->
+  <section class="grid grid-cols-12" style="margin-bottom: 20px;">
+    <!-- Live Access Request Stream -->
+    <div class="card col-span-7">
+      <div class="card-header">
+        <div class="card-title">
+          ⚡ Live Access Request Stream
+        </div>
+        <div style="font-size: 11px; color: #64748b;">Filtered by Active Campus View</div>
+      </div>
+      <div class="table-wrapper">
+        <table class="stream-table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>User (Home Campus)</th>
+              <th>Device</th>
+              <th>Resource (Hosting)</th>
+              <th>Campus Vector</th>
+              <th>Score</th>
+              <th>Decision</th>
+            </tr>
+          </thead>
+          <tbody id="streamTableBody">
+            <!-- Dynamic rows prepended here -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Security Alerts Panel -->
+    <div class="card col-span-5">
+      <div class="card-header">
+        <div class="card-title">
+          🚨 Threat & Anomaly Detector
+        </div>
+        <span class="badge badge-deny" id="alertCountBadge">0 Active</span>
+      </div>
+      <div class="alerts-list" id="alertsList">
+        <div class="text-muted" style="font-size: 12px; text-align: center; padding: 20px;">
+          No security anomalies detected yet. Monitoring UMaT network...
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       SECTION 6 & 7: DEVICE POSTURE & INTERACTIVE TESTER
+       ========================================================================== -->
+  <section class="grid grid-cols-12">
+    <!-- Device Posture Panel (Grouped by Campus) -->
+    <div class="card col-span-5">
+      <div class="card-header">
+        <div class="card-title">
+          💻 Device Posture & Compliance Status
+        </div>
+      </div>
+      <div id="postureContainer">
+        <!-- Rendered dynamically grouped by campus -->
+      </div>
+    </div>
+
+    <!-- Interactive Policy Tester -->
+    <div class="card col-span-7">
+      <div class="card-header">
+        <div class="card-title">
+          🧪 Interactive Policy Tester ("Test a Device")
+        </div>
+        <div style="font-size: 11px; color: #38bdf8;">Deterministic UMaT PDP Simulator</div>
+      </div>
+
+      <div class="tester-form">
+        <div class="form-group">
+          <label for="selectUser">User Subject (Home Campus):</label>
+          <select id="selectUser"></select>
+        </div>
+
+        <div class="form-group">
+          <label for="selectDevice">Device Endpoint (Registered Campus):</label>
+          <select id="selectDevice"></select>
+        </div>
+
+        <div class="form-group">
+          <label for="selectResource">Target Resource (Hosting Campus):</label>
+          <select id="selectResource"></select>
+        </div>
+
+        <div class="form-group">
+          <label for="selectLocation">Physical Network Location:</label>
+          <select id="selectLocation"></select>
+        </div>
+
+        <div class="form-group full-width">
+          <div class="checkbox-group">
+            <input type="checkbox" id="chkMfa" checked>
+            <label for="chkMfa" class="checkbox-label">Multi-Factor Authentication (MFA) Satisfied & Verified</label>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" style="width: 100%; justify-content: center; padding: 10px;" onclick="runTesterEvaluation()">
+        ⚖️ Evaluate Access Request (Run Policy Engine)
+      </button>
+
+      <!-- Tester Result Output -->
+      <div class="tester-result-box" id="testerResultBox" style="display: none;">
+        <div class="result-header">
+          <div class="score-dial-box">
+            <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase;">Trust Score</div>
+            <div class="score-big" id="testerScoreVal">--</div>
+          </div>
+          <div id="testerVerdictBadge" class="verdict-tag">--</div>
+        </div>
+
+        <div style="font-size: 11px; font-weight: 700; color: #94a3b8; margin-bottom: 8px; text-transform: uppercase;">
+          Human-Readable Factor Breakdown (Including Campus Reasoning):
+        </div>
+        <div class="factor-breakdown" id="testerFactorList">
+          <!-- Dynamic factors -->
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       JAVASCRIPT LOGIC
+       ========================================================================== -->
+  <script>
+    /* ==========================================================================
+       1. SIMULATED DATASETS (UMaT Two-Campus Context)
+       ========================================================================== */
+
+    const USERS = [
+      // Tarkwa Campus Users
+      { id: "student.tarkwa.kwame", name: "Kwame Mensah", role: "Student", homeCampus: "Tarkwa", trusted: true },
+      { id: "lecturer.tarkwa.mensah", name: "Dr. Mensah", role: "Lecturer", homeCampus: "Tarkwa", trusted: true },
+      { id: "staff.tarkwa.finance", name: "Kofi Owusu", role: "Finance Officer", homeCampus: "Tarkwa", trusted: true },
+      { id: "admin.root.tarkwa", name: "Root Admin", role: "Domain Admin", homeCampus: "Tarkwa", trusted: true, privileged: true },
+      { id: "svc.tarkwa.backup", name: "Backup Service", role: "Service Account", homeCampus: "Tarkwa", trusted: true, privileged: true },
+
+      // Takoradi Campus Users
+      { id: "student.takoradi.ama", name: "Ama Serwaa", role: "Student", homeCampus: "Takoradi", trusted: true },
+      { id: "lecturer.takoradi.owusu", name: "Dr. Owusu", role: "Lecturer", homeCampus: "Takoradi", trusted: true },
+      { id: "staff.takoradi.hr", name: "Esi HR", role: "HR Officer", homeCampus: "Takoradi", trusted: true },
+      { id: "eng.takoradi.tech", name: "Abena Tech", role: "IT Engineer", homeCampus: "Takoradi", trusted: true },
+
+      // Untrusted External Accounts
+      { id: "contractor.vpn", name: "External Vendor", role: "Contractor", homeCampus: "Off-Campus", trusted: false },
+      { id: "guest.byod", name: "Guest User", role: "Guest", homeCampus: "Off-Campus", trusted: false }
+    ];
+
+    const DEVICES = [
+      // Tarkwa Devices
+      { name: "Tarkwa-Chromebook", os: "ChromeOS", campus: "Tarkwa", compliant: true, type: "Managed" },
+      { name: "Tarkwa-Library-PC", os: "Windows 10", campus: "Tarkwa", compliant: true, type: "Managed" },
+      { name: "Tarkwa-Lab-Desktop", os: "Windows 11", campus: "Tarkwa", compliant: true, type: "MDM Enrolled" },
+      { name: "Tarkwa-Staff-Laptop", os: "macOS", campus: "Tarkwa", compliant: true, type: "MDM Enrolled" },
+      { name: "Tarkwa-Student-iPad", os: "iPadOS", campus: "Tarkwa", compliant: true, type: "MDM Enrolled" },
+
+      // Takoradi Devices
+      { name: "Takoradi-Chromebook", os: "ChromeOS", campus: "Takoradi", compliant: true, type: "Managed" },
+      { name: "Takoradi-Library-PC", os: "Windows 10", campus: "Takoradi", compliant: true, type: "Managed" },
+      { name: "Takoradi-Lab-Desktop", os: "Windows 11", campus: "Takoradi", compliant: true, type: "MDM Enrolled" },
+      { name: "Takoradi-Staff-Laptop", os: "macOS", campus: "Takoradi", compliant: true, type: "MDM Enrolled" },
+      { name: "Takoradi-Student-iPad", os: "iPadOS", campus: "Takoradi", compliant: true, type: "MDM Enrolled" },
+
+      // Non-compliant Devices
+      { name: "Personal-Phone", os: "Android", campus: "Off-Campus", compliant: false, type: "Unmanaged" },
+      { name: "Unregistered-Laptop", os: "Windows 10", campus: "Off-Campus", compliant: false, type: "Unmanaged" }
+    ];
+
+    const RESOURCES = [
+      // Central (Shared by Both Campuses)
+      { name: "Student-Records", tier: 3, hosting: "Central", desc: "Central Transcripts & PII Database" },
+      { name: "LMS/Moodle", tier: 2, hosting: "Central", desc: "Central E-Learning Portal" },
+      { name: "Exam-System", tier: 2, hosting: "Central", desc: "Central Online Examination Engine" },
+      { name: "Student-Email", tier: 1, hosting: "Central", desc: "University Webmail Service" },
+      { name: "Admin-Console", tier: 3, hosting: "Central", desc: "Central Active Directory & Controller" },
+
+      // Tarkwa Campus-Local
+      { name: "Tarkwa-Library-Catalog", tier: 1, hosting: "Tarkwa", desc: "Tarkwa Main Library System" },
+      { name: "Tarkwa-Computer-Lab", tier: 2, hosting: "Tarkwa", desc: "Tarkwa High-Performance Cluster" },
+      { name: "Tarkwa-Class-Materials", tier: 1, hosting: "Tarkwa", desc: "Tarkwa Local Course Server" },
+
+      // Takoradi Campus-Local
+      { name: "Takoradi-Library-Catalog", tier: 1, hosting: "Takoradi", desc: "Takoradi Branch Library System" },
+      { name: "Takoradi-Computer-Lab", tier: 2, hosting: "Takoradi", desc: "Takoradi CAD & Simulation Lab" },
+      { name: "Takoradi-Class-Materials", tier: 1, hosting: "Takoradi", desc: "Takoradi Local Course Server" }
+    ];
+
+    const LOCATIONS = [
+      // Physical On-Campus Locations (Trusted)
+      { place: "Tarkwa Main Campus", city: "Tarkwa", campus: "Tarkwa", trusted: true },
+      { place: "Takoradi Campus", city: "Takoradi", campus: "Takoradi", trusted: true },
+
+      // Off-Campus Locations (Ghanaian Cities)
+      { place: "Accra City", city: "Accra", campus: "Off-Campus", trusted: true },
+      { place: "Kumasi City", city: "Kumasi", campus: "Off-Campus", trusted: true },
+      { place: "Takoradi Town (Off-Campus)", city: "Takoradi", campus: "Off-Campus", trusted: true },
+
+      // Untrusted Foreign / Anon Locations
+      { place: "Lagos NG", city: "Lagos", campus: "Off-Campus", trusted: false },
+      { place: "Moscow RU", city: "Moscow", campus: "Off-Campus", trusted: false },
+      { place: "Beijing CN", city: "Beijing", campus: "Off-Campus", trusted: false },
+      { place: "Tor Exit Node", city: "Anon", campus: "Off-Campus", trusted: false }
+    ];
+
+    /* ==========================================================================
+       2. TRUST SCORING ENGINE (Includes Two-Campus Reasoning)
+       ========================================================================== */
+
+    let currentCampusFilter = "BOTH"; // BOTH | Tarkwa | Takoradi
+
+    /**
+     * Evaluates trust score (0-100) and returns human-readable factor breakdown.
+     * Incorporates explicit two-campus policy logic.
+     */
+    function evaluateTrustScore(userObj, deviceObj, resourceObj, locationObj, mfaSatisfied) {
+      let score = 50; // Baseline
+      const factors = [
+        { label: "Baseline Identity & System Trust", pts: 50, isPositive: true }
+      ];
+
+      // 1. Device Posture & Compliance
+      if (deviceObj.compliant) {
+        score += 20;
+        factors.push({ label: `Compliant / Managed Device (${deviceObj.name})`, pts: +20, isPositive: true });
+      } else {
+        score -= 25;
+        factors.push({ label: `Unmanaged / Non-Compliant Device (${deviceObj.name})`, pts: -25, isPositive: false });
+      }
+
+      // 2. Location Context
+      if (locationObj.trusted) {
+        score += 15;
+        factors.push({ label: `Trusted Network Location (${locationObj.place})`, pts: +15, isPositive: true });
+      } else {
+        score -= 30;
+        factors.push({ label: `High-Risk / Untrusted Location (${locationObj.place})`, pts: -30, isPositive: false });
+      }
+
+      // 3. User Identity & Directory Trust
+      if (userObj.trusted) {
+        score += 15;
+        factors.push({ label: `Verified Directory User (${userObj.role})`, pts: +15, isPositive: true });
+      } else {
+        score -= 20;
+        factors.push({ label: `External / Guest / Untrusted Account (${userObj.role})`, pts: -20, isPositive: false });
+      }
+
+      // 4. MFA Status
+      if (mfaSatisfied) {
+        score += 15;
+        factors.push({ label: "MFA Multi-Factor Challenge Satisfied", pts: +15, isPositive: true });
+      } else {
+        score -= 15;
+        factors.push({ label: "Primary Password Only (MFA Missing)", pts: -15, isPositive: false });
+      }
+
+      // 5. Resource Sensitivity Penalty
+      if (resourceObj.tier === 1) {
+        factors.push({ label: `Low Sensitivity Resource (Tier 1)`, pts: 0, isPositive: true });
+      } else if (resourceObj.tier === 2) {
+        score -= 10;
+        factors.push({ label: `Medium Sensitivity Resource (Tier 2)`, pts: -10, isPositive: false });
+      } else if (resourceObj.tier === 3) {
+        score -= 25;
+        factors.push({ label: `Critical High-Sensitivity Resource (Tier 3)`, pts: -25, isPositive: false });
+      }
+
+      // 6. TWO-CAMPUS CONTEXT SIGNAL (DEFINING FEATURE)
+      const userHome = userObj.homeCampus;
+      const locCampus = locationObj.campus;
+      const resHosting = resourceObj.hosting;
+
+      // A) Physical Location vs Home Campus
+      if (locCampus !== "Off-Campus") {
+        if (locCampus === userHome) {
+          score += 10;
+          factors.push({ label: `Home Campus Verification Match (${userHome})`, pts: +10, isPositive: true });
+        } else if (userHome !== "Off-Campus") {
+          score -= 15;
+          factors.push({ label: `Cross-Campus Physical Mismatch (Home: ${userHome}, Current: ${locCampus})`, pts: -15, isCampusPenalty: true });
+        }
+      }
+
+      // B) Target Resource Hosting vs User Home Campus
+      if (resHosting === "Central") {
+        factors.push({ label: `Central Shared Resource (No campus restriction)`, pts: 0, isPositive: true });
+      } else {
+        if (resHosting === userHome) {
+          score += 5;
+          factors.push({ label: `Home Campus Local Resource Match (${resHosting})`, pts: +5, isPositive: true });
+        } else {
+          score -= 20;
+          factors.push({ label: `Cross-Campus Local Resource Attempt (User: ${userHome}, Target: ${resHosting})`, pts: -20, isCampusPenalty: true });
+        }
+      }
+
+      // Bound score between 0 and 100
+      const finalScore = Math.min(100, Math.max(0, score));
+
+      // Decision Mapping
+      let verdict = "DENY";
+      if (finalScore >= 70) verdict = "ALLOW";
+      else if (finalScore >= 45) verdict = "STEP-UP MFA";
+      else verdict = "DENY";
+
+      return {
+        score: finalScore,
+        verdict: verdict,
+        factors: factors
+      };
+    }
+
+    /* ==========================================================================
+       3. GLOBAL STATE & TELEMETRY
+       ========================================================================== */
+
+    let isPaused = false;
+    let streamTimer = null;
+    let requestHistory = []; // Stores last 100 requests
+    let activeAlerts = [];
+    
+    // Total Telemetry Stats
+    let allTelemetry = {
+      BOTH: { total: 0, allow: 0, mfa: 0, deny: 0 },
+      Tarkwa: { total: 0, allow: 0, mfa: 0, deny: 0 },
+      Takoradi: { total: 0, allow: 0, mfa: 0, deny: 0 }
+    };
+
+    // Rolling 60-second RPS window
+    let rpsHistory = new Array(60).fill(0);
+    let rpsTimer = null;
+    let currentSecondRequests = 0;
+
+    /* ==========================================================================
+       4. INITIALIZATION & UI POPULATION
+       ========================================================================== */
+
+    window.addEventListener("DOMContentLoaded", () => {
+      populateTesterDropdowns();
+      renderDevicePosture();
+      initCanvasCharts();
+      startStreamSimulation();
+
+      // Run initial tester evaluation
+      runTesterEvaluation();
+    });
+
+    function setCampusFilter(campusName) {
+      currentCampusFilter = campusName;
+
+      // Update button styles
+      document.getElementById("btnFilterBoth").className = `campus-pill ${campusName === 'BOTH' ? 'active' : ''}`;
+      document.getElementById("btnFilterTarkwa").className = `campus-pill ${campusName === 'Tarkwa' ? 'active' : ''}`;
+      document.getElementById("btnFilterTakoradi").className = `campus-pill ${campusName === 'Takoradi' ? 'active' : ''}`;
+
+      document.getElementById("filterStatusInfo").textContent = 
+        campusName === "BOTH" ? "Viewing Combined UMaT Telemetry (Tarkwa + Takoradi)" :
+        `Filtered View: ${campusName} Campus Telemetry Only`;
+
+      // Re-render UI elements
+      updateKpiUI();
+      renderStreamTableFiltered();
+      renderDevicePosture();
+      renderAlertsUI();
+    }
+
+    function populateTesterDropdowns() {
+      const uSel = document.getElementById("selectUser");
+      const dSel = document.getElementById("selectDevice");
+      const rSel = document.getElementById("selectResource");
+      const lSel = document.getElementById("selectLocation");
+
+      USERS.forEach((u, i) => {
+        const opt = document.createElement("option");
+        opt.value = i;
+        opt.textContent = `${u.name} (${u.role} - Home: ${u.homeCampus})`;
+        uSel.appendChild(opt);
+      });
+
+      DEVICES.forEach((d, i) => {
+        const opt = document.createElement("option");
+        opt.value = i;
+        opt.textContent = `${d.name} [${d.campus} - ${d.compliant ? "Compliant" : "Non-compliant"}]`;
+        dSel.appendChild(opt);
+      });
+
+      RESOURCES.forEach((r, i) => {
+        const opt = document.createElement("option");
+        opt.value = i;
+        opt.textContent = `${r.name} (Tier ${r.tier} - ${r.hosting})`;
+        rSel.appendChild(opt);
+      });
+
+      LOCATIONS.forEach((l, i) => {
+        const opt = document.createElement("option");
+        opt.value = i;
+        opt.textContent = `${l.place} [${l.campus}] (${l.trusted ? "Trusted" : "Untrusted"})`;
+        lSel.appendChild(opt);
+      });
+    }
+
+    function renderDevicePosture() {
+      const container = document.getElementById("postureContainer");
+      container.innerHTML = "";
+
+      const campuses = currentCampusFilter === "BOTH" ? ["Tarkwa", "Takoradi", "Off-Campus"] : [currentCampusFilter];
+
+      campuses.forEach(camp => {
+        const campDevices = DEVICES.filter(d => d.campus === camp);
+        if (campDevices.length === 0) return;
+
+        const groupHeader = document.createElement("div");
+        groupHeader.className = "posture-group-title";
+        groupHeader.textContent = camp === "Off-Campus" ? "🌐 Unmanaged / External Endpoints" : `🏫 ${camp} Campus Endpoints`;
+        container.appendChild(groupHeader);
+
+        const listDiv = document.createElement("div");
+        listDiv.className = "posture-list";
+
+        campDevices.forEach(dev => {
+          const item = document.createElement("div");
+          item.className = "posture-item";
+
+          const score = dev.compliant ? 100 : 35;
+          const barColor = dev.compliant ? "#10b981" : "#ef4444";
+          const statusText = dev.compliant ? "MDM Enrolled & Compliant" : "Non-Compliant Endpoint";
+
+          item.innerHTML = `
+            <div class="posture-meta">
+              <span class="posture-name">${dev.name} <span style="font-size: 10px; color: #64748b;">(${dev.os})</span></span>
+              <span class="posture-status" style="color: ${barColor}; font-weight: 700;">${statusText}</span>
+            </div>
+            <div class="posture-bar-bg">
+              <div class="posture-bar-fill" style="width: ${score}%; background-color: ${barColor};"></div>
+            </div>
+          `;
+          listDiv.appendChild(item);
+        });
+
+        container.appendChild(listDiv);
+      });
+    }
+
+    /* ==========================================================================
+       5. STREAM SIMULATION ENGINE
+       ========================================================================== */
+
+    function startStreamSimulation() {
+      scheduleNextRequest();
+
+      rpsTimer = setInterval(() => {
+        rpsHistory.shift();
+        rpsHistory.push(currentSecondRequests);
+        currentSecondRequests = 0;
+
+        const currentRps = (rpsHistory.reduce((a, b) => a + b, 0) / 60).toFixed(1);
+        document.getElementById("rpsCounter").textContent = `${currentRps} req/sec avg`;
+        drawRpsChart();
+      }, 1000);
+    }
+
+    function scheduleNextRequest() {
+      if (streamTimer) clearTimeout(streamTimer);
+
+      const delay = Math.floor(Math.random() * 1000) + 1100;
+      streamTimer = setTimeout(() => {
+        if (!isPaused) {
+          generateRandomAccessRequest();
+        }
+        scheduleNextRequest();
+      }, delay);
+    }
+
+    function generateRandomAccessRequest(overrideData = null) {
+      let u, d, r, l, mfa;
+
+      if (overrideData) {
+        u = overrideData.user;
+        d = overrideData.device;
+        r = overrideData.resource;
+        l = overrideData.location;
+        mfa = overrideData.mfa;
+      } else {
+        u = USERS[Math.floor(Math.random() * USERS.length)];
+        d = DEVICES[Math.floor(Math.random() * DEVICES.length)];
+        r = RESOURCES[Math.floor(Math.random() * RESOURCES.length)];
+        l = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)];
+        mfa = Math.random() > 0.35;
+      }
+
+      const evalResult = evaluateTrustScore(u, d, r, l, mfa);
+      const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
+
+      // Determine primary campus attribution
+      let primaryCampus = "Tarkwa";
+      if (l.campus === "Takoradi" || u.homeCampus === "Takoradi") {
+        primaryCampus = "Takoradi";
+      }
+
+      const isCrossCampus = (u.homeCampus !== "Off-Campus" && l.campus !== "Off-Campus" && u.homeCampus !== l.campus) ||
+                           (r.hosting !== "Central" && u.homeCampus !== "Off-Campus" && u.homeCampus !== r.hosting);
+
+      const reqObj = {
+        id: "REQ-" + Math.floor(100000 + Math.random() * 900000),
+        time: timestamp,
+        timestampMs: Date.now(),
+        user: u,
+        device: d,
+        resource: r,
+        location: l,
+        mfa: mfa,
+        primaryCampus: primaryCampus,
+        isCrossCampus: isCrossCampus,
+        score: evalResult.score,
+        verdict: evalResult.verdict,
+        factors: evalResult.factors
+      };
+
+      requestHistory.unshift(reqObj);
+      if (requestHistory.length > 100) requestHistory.pop();
+
+      // Update Telemetry Counters
+      updateTelemetryCounters(reqObj);
+      currentSecondRequests++;
+
+      // UI Updates
+      updateKpiUI();
+      renderStreamTableFiltered();
+      animateNistPipeline(reqObj);
+      evaluateSecurityAlerts(reqObj);
+    }
+
+    function updateTelemetryCounters(req) {
+      const camp = req.primaryCampus; // Tarkwa or Takoradi
+
+      // Increment BOTH
+      allTelemetry.BOTH.total++;
+      if (req.verdict === "ALLOW") allTelemetry.BOTH.allow++;
+      else if (req.verdict === "STEP-UP MFA") allTelemetry.BOTH.mfa++;
+      else allTelemetry.BOTH.deny++;
+
+      // Increment Campus Specific
+      if (allTelemetry[camp]) {
+        allTelemetry[camp].total++;
+        if (req.verdict === "ALLOW") allTelemetry[camp].allow++;
+        else if (req.verdict === "STEP-UP MFA") allTelemetry[camp].mfa++;
+        else allTelemetry[camp].deny++;
+      }
+    }
+
+    function updateKpiUI() {
+      const stats = allTelemetry[currentCampusFilter];
+
+      document.getElementById("kpiTotalReq").textContent = stats.total;
+      document.getElementById("kpiAllowed").textContent = stats.allow;
+      document.getElementById("kpiMfa").textContent = stats.mfa;
+      document.getElementById("kpiDenied").textContent = stats.deny;
+
+      const total = stats.total || 1;
+      document.getElementById("kpiAllowPct").textContent = `${Math.round((stats.allow / total) * 100)}%`;
+      document.getElementById("kpiMfaPct").textContent = `${Math.round((stats.mfa / total) * 100)}%`;
+      document.getElementById("kpiDenyPct").textContent = `${Math.round((stats.deny / total) * 100)}%`;
+
+      // Update Breakdown Pills
+      const breakDivs = ['breakdownTotal', 'breakdownAllow', 'breakdownMfa', 'breakdownDeny'];
+      const keys = ['total', 'allow', 'mfa', 'deny'];
+
+      breakDivs.forEach((divId, index) => {
+        const div = document.getElementById(divId);
+        if (currentCampusFilter === "BOTH") {
+          div.style.display = "flex";
+          div.children[0].textContent = `Tarkwa: ${allTelemetry.Tarkwa[keys[index]]}`;
+          div.children[1].textContent = `Takoradi: ${allTelemetry.Takoradi[keys[index]]}`;
+        } else {
+          div.style.display = "none";
+        }
+      });
+    }
+
+    function renderStreamTableFiltered() {
+      const tbody = document.getElementById("streamTableBody");
+      tbody.innerHTML = "";
+
+      const filtered = requestHistory.filter(r => {
+        if (currentCampusFilter === "BOTH") return true;
+        return r.primaryCampus === currentCampusFilter || r.user.homeCampus === currentCampusFilter || r.resource.hosting === currentCampusFilter;
+      }).slice(0, 20);
+
+      filtered.forEach((req, idx) => {
+        const tr = document.createElement("tr");
+        if (idx === 0) tr.className = "new-row";
+        if (req.isCrossCampus) tr.classList.add("cross-campus-row");
+
+        let badgeClass = "badge-deny";
+        if (req.verdict === "ALLOW") badgeClass = "badge-allow";
+        else if (req.verdict === "STEP-UP MFA") badgeClass = "badge-mfa";
+
+        // Campus vector string
+        const userCampShort = req.user.homeCampus.replace(" Campus", "");
+        const resCampShort = req.resource.hosting;
+        const vectorStr = req.isCrossCampus ? 
+          `<span class="badge badge-cross">🔀 ${userCampShort} → ${resCampShort}</span>` :
+          `<span style="font-size: 11px; color: #94a3b8;">${userCampShort}</span>`;
+
+        tr.innerHTML = `
+          <td class="mono text-muted">${req.time}</td>
+          <td><strong>${req.user.id}</strong> <span style="font-size: 10px; color: #64748b;">(${userCampShort})</span></td>
+          <td>${req.device.name} ${req.device.compliant ? "✓" : "⚠️"}</td>
+          <td>${req.resource.name} <span class="mono" style="font-size: 10px; color: #64748b;">[${resCampShort}]</span></td>
+          <td>${vectorStr}</td>
+          <td><span class="score-chip">${req.score}</span></td>
+          <td><span class="badge ${badgeClass}">${req.verdict}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    /* ==========================================================================
+       6. NIST PIPELINE ANIMATION
+       ========================================================================== */
+
+    function animateNistPipeline(req) {
+      const tag = document.getElementById("pipelineActiveTag");
+      const subjDetail = document.getElementById("nodeSubjectDetail");
+      const resDetail = document.getElementById("nodeResourceDetail");
+
+      subjDetail.textContent = `${req.user.id} (${req.user.homeCampus})`;
+      resDetail.textContent = `${req.resource.name} [${req.resource.hosting}]`;
+
+      tag.textContent = `PDP Eval: ${req.user.id} → ${req.verdict}`;
+      if (req.verdict === "ALLOW") {
+        tag.style.color = "#34d399";
+        tag.style.borderColor = "rgba(16, 185, 129, 0.4)";
+      } else if (req.verdict === "STEP-UP MFA") {
+        tag.style.color = "#fbbf24";
+        tag.style.borderColor = "rgba(245, 158, 11, 0.4)";
+      } else {
+        tag.style.color = "#f87171";
+        tag.style.borderColor = "rgba(239, 68, 68, 0.4)";
+      }
+
+      const pepNode = document.getElementById("nodePEP");
+      pepNode.style.borderColor = req.verdict === "ALLOW" ? "#10b981" : (req.verdict === "STEP-UP MFA" ? "#f59e0b" : "#ef4444");
+      setTimeout(() => {
+        pepNode.style.borderColor = "#334155";
+      }, 700);
+    }
+
+    /* ==========================================================================
+       7. SECURITY ALERTS & ANOMALY DETECTOR ENGINE (Includes Cross-Campus Travel)
+       ========================================================================== */
+
+    function evaluateSecurityAlerts(latestReq) {
+      // 1. Check Impossible Inter-Campus Travel (Tarkwa <-> Takoradi ~90 km apart)
+      const previousUserReq = requestHistory.find(r => 
+        r !== latestReq &&
+        r.user.id === latestReq.user.id &&
+        (Date.now() - r.timestampMs) < 60000 &&
+        r.location.campus !== "Off-Campus" &&
+        latestReq.location.campus !== "Off-Campus" &&
+        r.location.campus !== latestReq.location.campus
+      );
+
+      if (previousUserReq) {
+        addAlert({
+          type: "IMPOSSIBLE_TRAVEL",
+          title: "🚨 Impossible Inter-Campus Travel (~90km Anomaly)",
+          desc: `User [${latestReq.user.id}] logged in physically from ${previousUserReq.location.place} and ${latestReq.location.place} within 60s.`,
+          action: "Enforced DENY & Triggered Security Operations Alert",
+          severity: "danger"
+        });
+      }
+
+      // 2. Check Cross-Campus Access to Campus-Local Resource
+      if (latestReq.resource.hosting !== "Central" && 
+          latestReq.user.homeCampus !== "Off-Campus" && 
+          latestReq.user.homeCampus !== latestReq.resource.hosting) {
+        addAlert({
+          type: "CROSS_CAMPUS_ACCESS",
+          title: "🔀 Cross-Campus Local Resource Policy Trigger",
+          desc: `${latestReq.user.homeCampus} user [${latestReq.user.id}] requested ${latestReq.resource.hosting}-local resource [${latestReq.resource.name}].`,
+          action: `Applied -20 pt Cross-Campus Penalty (Verdict: ${latestReq.verdict})`,
+          severity: "cross-campus"
+        });
+      }
+
+      // 3. Check Brute Force (Repeated Failed Attempts)
+      const recentUserDenies = requestHistory.filter(r => 
+        r.user.id === latestReq.user.id &&
+        (Date.now() - r.timestampMs) < 120000 &&
+        r.verdict === "DENY"
+      ).length;
+
+      if (recentUserDenies >= 3 && latestReq.verdict === "DENY") {
+        addAlert({
+          type: "BRUTE_FORCE",
+          title: "⚡ Repeated Deny Threshold Exceeded (Brute Force)",
+          desc: `User [${latestReq.user.id}] accumulated ${recentUserDenies} DENY decisions within 2 minutes.`,
+          action: "PDP triggered temporary IP & Account Cooldown Challenge",
+          severity: "danger"
+        });
+      }
+
+      // 4. Check Non-Compliant Device Access to Sensitive Resource
+      if (!latestReq.device.compliant && latestReq.resource.tier >= 2) {
+        addAlert({
+          type: "NON_COMPLIANT_ACCESS",
+          title: "⚠️ Unmanaged Endpoint Access to Sensitive Resource",
+          desc: `Unmanaged device [${latestReq.device.name}] requested Tier ${latestReq.resource.tier} resource [${latestReq.resource.name}].`,
+          action: `Policy decision: ${latestReq.verdict} (Score: ${latestReq.score})`,
+          severity: latestReq.resource.tier === 3 ? "danger" : "warning"
+        });
+      }
+
+      // 5. Check Privileged Account Anomaly
+      if (latestReq.user.privileged && (!latestReq.location.trusted || !latestReq.device.compliant)) {
+        addAlert({
+          type: "PRIVILEGED_ANOMALY",
+          title: "🛡️ Privileged Identity Anomaly Detected",
+          desc: `Privileged account [${latestReq.user.id}] initiated request from unverified context (${latestReq.location.place}, ${latestReq.device.name}).`,
+          action: "Policy Administrator enforced mandatory Step-Up MFA & Audit Log",
+          severity: "warning"
+        });
+      }
+    }
+
+    function addAlert(alertObj) {
+      const isDup = activeAlerts.slice(0, 5).some(a => a.title === alertObj.title && a.desc === alertObj.desc);
+      if (isDup) return;
+
+      alertObj.time = new Date().toLocaleTimeString('en-US', { hour12: false });
+      activeAlerts.unshift(alertObj);
+      if (activeAlerts.length > 20) activeAlerts.pop();
+
+      renderAlertsUI();
+    }
+
+    function renderAlertsUI() {
+      const container = document.getElementById("alertsList");
+      document.getElementById("alertCountBadge").textContent = `${activeAlerts.length} Active`;
+
+      if (activeAlerts.length === 0) {
+        container.innerHTML = `<div class="text-muted" style="font-size: 12px; text-align: center; padding: 20px;">No security anomalies detected yet.</div>`;
+        return;
+      }
+
+      container.innerHTML = "";
+      activeAlerts.slice(0, 10).forEach(alert => {
+        const div = document.createElement("div");
+        div.className = `alert-card ${alert.severity}`;
+
+        let icon = "🚨";
+        if (alert.severity === "warning") icon = "⚠️";
+        else if (alert.severity === "cross-campus") icon = "🔀";
+
+        div.innerHTML = `
+          <div class="alert-icon">${icon}</div>
+          <div class="alert-content">
+            <div class="alert-title">
+              <span>${alert.title}</span>
+              <span class="alert-time">${alert.time}</span>
+            </div>
+            <div class="alert-desc">${alert.desc}</div>
+            <div class="alert-action">PEP Action: ${alert.action}</div>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    /* ==========================================================================
+       8. CANVAS CHART ENGINE
+       ========================================================================== */
+
+    let chartCanvas, chartCtx;
+
+    function initCanvasCharts() {
+      chartCanvas = document.getElementById("rpsChart");
+      chartCtx = chartCanvas.getContext("2d");
+      resizeCanvas();
+      window.addEventListener("resize", resizeCanvas);
+      drawRpsChart();
+    }
+
+    function resizeCanvas() {
+      if (!chartCanvas) return;
+      const rect = chartCanvas.parentElement.getBoundingClientRect();
+      chartCanvas.width = rect.width * window.devicePixelRatio;
+      chartCanvas.height = rect.height * window.devicePixelRatio;
+      chartCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    }
+
+    function drawRpsChart() {
+      if (!chartCanvas || !chartCtx) return;
+      const w = chartCanvas.parentElement.clientWidth;
+      const h = chartCanvas.parentElement.clientHeight;
+
+      chartCtx.clearRect(0, 0, w, h);
+
+      // Grid Lines
+      chartCtx.strokeStyle = "#1e293b";
+      chartCtx.lineWidth = 1;
+
+      for (let y = 20; y < h; y += 40) {
+        chartCtx.beginPath();
+        chartCtx.moveTo(0, y);
+        chartCtx.lineTo(w, y);
+        chartCtx.stroke();
+      }
+
+      // Line Chart
+      const maxVal = Math.max(5, Math.max(...rpsHistory) + 2);
+      const stepX = w / (rpsHistory.length - 1);
+
+      chartCtx.beginPath();
+      chartCtx.strokeStyle = "#38bdf8";
+      chartCtx.lineWidth = 2.5;
+
+      for (let i = 0; i < rpsHistory.length; i++) {
+        const x = i * stepX;
+        const y = h - ((rpsHistory[i] / maxVal) * (h - 30)) - 15;
+        if (i === 0) chartCtx.moveTo(x, y);
+        else chartCtx.lineTo(x, y);
+      }
+      chartCtx.stroke();
+
+      // Fill Area
+      chartCtx.lineTo(w, h);
+      chartCtx.lineTo(0, h);
+      chartCtx.closePath();
+
+      const grad = chartCtx.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, "rgba(56, 189, 248, 0.25)");
+      grad.addColorStop(1, "rgba(56, 189, 248, 0.0)");
+      chartCtx.fillStyle = grad;
+      chartCtx.fill();
+    }
+
+    /* ==========================================================================
+       9. INTERACTIVE POLICY TESTER ("TEST A DEVICE")
+       ========================================================================== */
+
+    function runTesterEvaluation() {
+      const uIndex = document.getElementById("selectUser").value;
+      const dIndex = document.getElementById("selectDevice").value;
+      const rIndex = document.getElementById("selectResource").value;
+      const lIndex = document.getElementById("selectLocation").value;
+      const mfaChecked = document.getElementById("chkMfa").checked;
+
+      const userObj = USERS[uIndex];
+      const deviceObj = DEVICES[dIndex];
+      const resourceObj = RESOURCES[rIndex];
+      const locationObj = LOCATIONS[lIndex];
+
+      const result = evaluateTrustScore(userObj, deviceObj, resourceObj, locationObj, mfaChecked);
+
+      const resultBox = document.getElementById("testerResultBox");
+      const scoreVal = document.getElementById("testerScoreVal");
+      const badge = document.getElementById("testerVerdictBadge");
+      const factorList = document.getElementById("testerFactorList");
+
+      resultBox.style.display = "block";
+      scoreVal.textContent = result.score;
+
+      if (result.verdict === "ALLOW") {
+        scoreVal.style.color = "#34d399";
+        badge.textContent = "VERDICT: ALLOW";
+        badge.className = "verdict-tag badge-allow";
+      } else if (result.verdict === "STEP-UP MFA") {
+        scoreVal.style.color = "#fbbf24";
+        badge.textContent = "VERDICT: STEP-UP MFA";
+        badge.className = "verdict-tag badge-mfa";
+      } else {
+        scoreVal.style.color = "#f87171";
+        badge.textContent = "VERDICT: DENY";
+        badge.className = "verdict-tag badge-deny";
+      }
+
+      factorList.innerHTML = "";
+      result.factors.forEach(f => {
+        const item = document.createElement("div");
+        item.className = "factor-item";
+
+        const sign = f.pts > 0 ? `+${f.pts}` : `${f.pts}`;
+        let ptsClass = f.isPositive ? "factor-positive" : (f.pts < 0 ? "factor-negative" : "text-muted");
+        if (f.isCampusPenalty) ptsClass = "factor-campus-penalty";
+
+        item.innerHTML = `
+          <span>${f.label}</span>
+          <span class="factor-pts ${ptsClass}">${sign} pts</span>
+        `;
+        factorList.appendChild(item);
+      });
+    }
+
+    /* ==========================================================================
+       10. CONTROL BUTTONS & ATTACK SCENARIO INJECTION
+       ========================================================================== */
+
+    function togglePause() {
+      isPaused = !isPaused;
+      const btn = document.getElementById("btnTogglePause");
+      const dot = document.getElementById("liveDot");
+      const text = document.getElementById("liveStatusText");
+
+      if (isPaused) {
+        btn.textContent = "▶️ Resume Stream";
+        text.textContent = "STREAM PAUSED";
+        dot.style.backgroundColor = "#f59e0b";
+        dot.style.boxShadow = "0 0 8px #f59e0b";
+      } else {
+        btn.textContent = "⏸️ Pause Stream";
+        text.textContent = "LIVE STREAMING";
+        dot.style.backgroundColor = "#10b981";
+        dot.style.boxShadow = "0 0 8px #10b981";
+      }
+    }
+
+    function triggerAttackScenario() {
+      if (isPaused) togglePause();
+
+      const tarkwaStudent = USERS.find(u => u.id === "student.tarkwa.kwame") || USERS[0];
+      const takoradiResource = RESOURCES.find(r => r.name === "Takoradi-Computer-Lab") || RESOURCES[9];
+
+      // Stage 1: Tarkwa Student logs in from Tarkwa Campus (ALLOW)
+      generateRandomAccessRequest({
+        user: tarkwaStudent,
+        device: DEVICES.find(d => d.name === "Tarkwa-Chromebook"),
+        resource: RESOURCES.find(r => r.name === "Student-Email"),
+        location: LOCATIONS.find(l => l.place === "Tarkwa Main Campus"),
+        mfa: true
+      });
+
+      // Stage 2: 300ms later - Tarkwa Student suddenly appears physically at Takoradi Campus (Impossible Travel ~90km)
+      setTimeout(() => {
+        generateRandomAccessRequest({
+          user: tarkwaStudent,
+          device: DEVICES.find(d => d.name === "Personal-Phone"),
+          resource: takoradiResource,
+          location: LOCATIONS.find(l => l.place === "Takoradi Campus"),
+          mfa: false
+        });
+      }, 300);
+
+      // Stage 3: 600ms later - Cross-Campus attempt on Takoradi Local System without MFA (DENY / Step-Up)
+      setTimeout(() => {
+        generateRandomAccessRequest({
+          user: tarkwaStudent,
+          device: DEVICES.find(d => d.name === "Unregistered-Laptop"),
+          resource: takoradiResource,
+          location: LOCATIONS.find(l => l.place === "Takoradi Campus"),
+          mfa: false
+        });
+      }, 600);
+
+      // Stage 4: 900ms later - External Contractor Attack from Tor Exit Node on Central Admin Console (DENY)
+      setTimeout(() => {
+        generateRandomAccessRequest({
+          user: USERS.find(u => u.id === "contractor.vpn"),
+          device: DEVICES.find(d => d.name === "Personal-Phone"),
+          resource: RESOURCES.find(r => r.name === "Admin-Console"),
+          location: LOCATIONS.find(l => l.place === "Tor Exit Node"),
+          mfa: false
+        });
+      }, 900);
+    }
+  </script>
+</body>
+</html>
