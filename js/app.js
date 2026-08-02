@@ -14,7 +14,7 @@
  * Reference: NIST SP 800-207 — "Zero Trust Architecture" (August 2020)
  *            https://doi.org/10.6028/NIST.SP.800-207
  *
- * Author:  Naphtali E.A.
+ * Author:  Naphtalie A
  * Date:    2026
  */
 
