@@ -2,23 +2,23 @@
  * UMaT Zero Trust Access Monitoring Dashboard
  * University of Mines and Technology — Tarkwa & Takoradi Campuses
  *
- * This application implements a contextual access control evaluation engine
- * grounded in the NIST Special Publication 800-207 Zero Trust Architecture.
+ * Developed by: Naphtalie A
  *
- * The core Subject → PEP → PDP (Policy Engine + Policy Administrator) → Resource
- * pipeline is modelled after NIST 800-207, Section 3 (Logical Components).
- * Trust scores are computed per-request using six weighted context signals,
- * including a custom cross-campus geographic signal unique to UMaT's dual-campus
- * topology (Tarkwa ↔ Takoradi, ~90 km apart via fiber link).
+ * In this project, I built a zero-trust policy evaluation engine based on the
+ * NIST SP 800-207 framework. The dashboard monitors and evaluates real-time access
+ * requests across UMaT's Tarkwa (Main) and Takoradi campuses.
  *
- * Reference: NIST SP 800-207 — "Zero Trust Architecture" (August 2020)
+ * How I structured the architecture:
+ * - Policy Enforcement Point (PEP): Intercepts access attempts at the perimeter.
+ * - Policy Decision Point (PDP): Calculates dynamic trust scores (0-100) using 6 context factors.
+ * - Cross-Campus Signal: My custom addition to account for the physical gap (~90 km)
+ *   and network differences between Tarkwa and Takoradi.
+ *
+ * Reference: NIST SP 800-207 — Zero Trust Architecture (August 2020)
  *            https://doi.org/10.6028/NIST.SP.800-207
- *
- * Author:  Naphtalie A
- * Date:    2026
  */
 
-// Simulated Mock Data — represents identities from UMaT's directory services
+// User Directory Data — Student, staff, lecturer, and contractor accounts I defined
 const USERS = [
   // Tarkwa Campus Users
   { id: "student.tarkwa.kwame", name: "Kwame Mensah", role: "Student", homeCampus: "Tarkwa", trusted: true },
@@ -262,9 +262,9 @@ function setCampusFilter(campusName) {
   document.getElementById("btnFilterTarkwa").className = `campus-pill ${campusName === 'Tarkwa' ? 'active' : ''}`;
   document.getElementById("btnFilterTakoradi").className = `campus-pill ${campusName === 'Takoradi' ? 'active' : ''}`;
 
-  document.getElementById("filterStatusInfo").textContent = 
+  document.getElementById("filterStatusInfo").textContent =
     campusName === "BOTH" ? "Combined Telemetry (Tarkwa + Takoradi)" :
-    `Scope: ${campusName} Campus Only`;
+      `Scope: ${campusName} Campus Only`;
 
   updateKpiUI();
   renderStreamTableFiltered();
@@ -409,7 +409,7 @@ function generateRandomAccessRequest(overrideData = null) {
   }
 
   const isCrossCampus = (u.homeCampus !== "Off-Campus" && l.campus !== "Off-Campus" && u.homeCampus !== l.campus) ||
-                       (r.hosting !== "Central" && u.homeCampus !== "Off-Campus" && u.homeCampus !== r.hosting);
+    (r.hosting !== "Central" && u.homeCampus !== "Off-Campus" && u.homeCampus !== r.hosting);
 
   const reqObj = {
     id: "REQ-" + Math.floor(100000 + Math.random() * 900000),
@@ -512,7 +512,7 @@ function renderStreamTableFiltered() {
 
     const userCampShort = req.user.homeCampus.replace(" Campus", "");
     const resCampShort = req.resource.hosting;
-    const vectorStr = req.isCrossCampus ? 
+    const vectorStr = req.isCrossCampus ?
       `<span class="badge badge-cross">${userCampShort} → ${resCampShort}</span>` :
       `<span style="font-size: 11px; color: #94a3b8;">${userCampShort}</span>`;
 
@@ -562,7 +562,7 @@ function animateNistPipeline(req) {
 
 function evaluateSecurityAlerts(latestReq) {
   // Impossible travel check
-  const previousUserReq = requestHistory.find(r => 
+  const previousUserReq = requestHistory.find(r =>
     r !== latestReq &&
     r.user.id === latestReq.user.id &&
     (Date.now() - r.timestampMs) < 60000 &&
@@ -582,9 +582,9 @@ function evaluateSecurityAlerts(latestReq) {
   }
 
   // Cross-campus resource check
-  if (latestReq.resource.hosting !== "Central" && 
-      latestReq.user.homeCampus !== "Off-Campus" && 
-      latestReq.user.homeCampus !== latestReq.resource.hosting) {
+  if (latestReq.resource.hosting !== "Central" &&
+    latestReq.user.homeCampus !== "Off-Campus" &&
+    latestReq.user.homeCampus !== latestReq.resource.hosting) {
     addAlert({
       type: "CROSS_CAMPUS_ACCESS",
       title: "Cross-Campus Resource Access",
@@ -595,7 +595,7 @@ function evaluateSecurityAlerts(latestReq) {
   }
 
   // Brute force threshold check
-  const recentUserDenies = requestHistory.filter(r => 
+  const recentUserDenies = requestHistory.filter(r =>
     r.user.id === latestReq.user.id &&
     (Date.now() - r.timestampMs) < 120000 &&
     r.verdict === "DENY"
