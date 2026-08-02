@@ -1,24 +1,8 @@
-/**
- * UMaT Zero Trust Access Monitoring Dashboard
- * University of Mines and Technology — Tarkwa & Takoradi Campuses
- *
- * Developed by: Naphtalie A
- *
- * In this project, I built a zero-trust policy evaluation engine based on the
- * NIST SP 800-207 framework. The dashboard monitors and evaluates real-time access
- * requests across UMaT's Tarkwa (Main) and Takoradi campuses.
- *
- * How I structured the architecture:
- * - Policy Enforcement Point (PEP): Intercepts access attempts at the perimeter.
- * - Policy Decision Point (PDP): Calculates dynamic trust scores (0-100) using 6 context factors.
- * - Cross-Campus Signal: My custom addition to account for the physical gap (~90 km)
- *   and network differences between Tarkwa and Takoradi.
- *
- * Reference: NIST SP 800-207 — Zero Trust Architecture (August 2020)
- *            https://doi.org/10.6028/NIST.SP.800-207
- */
+// UMaT Zero Trust Access Monitoring Dashboard
+// Author: Amemo Naphtalie (University of Mines and Technology)
+// Core policy evaluation engine based on NIST SP 800-207 framework
 
-// User Directory Data — Student, staff, lecturer, and contractor accounts I defined
+// Mock Directory Users
 const USERS = [
   // Tarkwa Campus Users
   { id: "student.tarkwa.kwame", name: "Kwame Mensah", role: "Student", homeCampus: "Tarkwa", trusted: true },
@@ -33,45 +17,37 @@ const USERS = [
   { id: "staff.takoradi.hr", name: "Esi HR", role: "HR Officer", homeCampus: "Takoradi", trusted: true },
   { id: "eng.takoradi.tech", name: "Abena Tech", role: "IT Engineer", homeCampus: "Takoradi", trusted: true },
 
-  // External / Untrusted Accounts
+  // External / Untrusted
   { id: "contractor.vpn", name: "External Vendor", role: "Contractor", homeCampus: "Off-Campus", trusted: false },
   { id: "guest.byod", name: "Guest User", role: "Guest", homeCampus: "Off-Campus", trusted: false }
 ];
 
+// Managed and Unmanaged Devices
 const DEVICES = [
-  // Tarkwa Devices
   { name: "Tarkwa-Chromebook", os: "ChromeOS", campus: "Tarkwa", compliant: true, type: "Managed" },
   { name: "Tarkwa-Library-PC", os: "Windows 10", campus: "Tarkwa", compliant: true, type: "Managed" },
   { name: "Tarkwa-Lab-Desktop", os: "Windows 11", campus: "Tarkwa", compliant: true, type: "MDM Enrolled" },
   { name: "Tarkwa-Staff-Laptop", os: "macOS", campus: "Tarkwa", compliant: true, type: "MDM Enrolled" },
   { name: "Tarkwa-Student-iPad", os: "iPadOS", campus: "Tarkwa", compliant: true, type: "MDM Enrolled" },
 
-  // Takoradi Devices
   { name: "Takoradi-Chromebook", os: "ChromeOS", campus: "Takoradi", compliant: true, type: "Managed" },
   { name: "Takoradi-Library-PC", os: "Windows 10", campus: "Takoradi", compliant: true, type: "Managed" },
   { name: "Takoradi-Lab-Desktop", os: "Windows 11", campus: "Takoradi", compliant: true, type: "MDM Enrolled" },
   { name: "Takoradi-Staff-Laptop", os: "macOS", campus: "Takoradi", compliant: true, type: "MDM Enrolled" },
   { name: "Takoradi-Student-iPad", os: "iPadOS", campus: "Takoradi", compliant: true, type: "MDM Enrolled" },
 
-  // Unmanaged Endpoints
   { name: "Personal-Phone", os: "Android", campus: "Off-Campus", compliant: false, type: "Unmanaged" },
   { name: "Unregistered-Laptop", os: "Windows 10", campus: "Off-Campus", compliant: false, type: "Unmanaged" }
 ];
 
-// Resources are classified using a 3-tier sensitivity model:
-//   Tier 1 (Low)  — Public-facing or low-risk systems (e.g. library catalog)
-//   Tier 2 (Med)  — Internal systems requiring authentication (e.g. LMS, exam portal)
-//   Tier 3 (High) — Privileged admin or PII systems (e.g. student records, AD)
-// Resource hosting indicates whether data resides centrally or on a specific campus.
+// Target Systems (Tier 1: Public/Low, Tier 2: Internal, Tier 3: High Sensitivity)
 const RESOURCES = [
-  // Central Shared Systems
   { name: "Student-Records", tier: 3, hosting: "Central", desc: "Transcripts & Student Database" },
   { name: "LMS/Moodle", tier: 2, hosting: "Central", desc: "E-Learning Portal" },
   { name: "Exam-System", tier: 2, hosting: "Central", desc: "Online Examination System" },
   { name: "Student-Email", tier: 1, hosting: "Central", desc: "University Webmail" },
   { name: "Admin-Console", tier: 3, hosting: "Central", desc: "Active Directory Controller" },
 
-  // Campus-Local Systems
   { name: "Tarkwa-Library-Catalog", tier: 1, hosting: "Tarkwa", desc: "Tarkwa Main Library" },
   { name: "Tarkwa-Computer-Lab", tier: 2, hosting: "Tarkwa", desc: "Tarkwa HPC Cluster" },
   { name: "Tarkwa-Class-Materials", tier: 1, hosting: "Tarkwa", desc: "Tarkwa Course Files" },
@@ -80,35 +56,29 @@ const RESOURCES = [
   { name: "Takoradi-Class-Materials", tier: 1, hosting: "Takoradi", desc: "Takoradi Course Files" }
 ];
 
-// Locations model the network origin of each request.
-// On-campus networks (Tarkwa, Takoradi) are inherently more trusted than external
-// origins. Untrusted origins include known high-risk geolocations and anonymising
-// proxies, which receive a trust penalty per NIST 800-207 §2.1 (implicit trust zones).
+// Network Origins
 const LOCATIONS = [
-  // On-Campus Networks
   { place: "Tarkwa Main Campus", city: "Tarkwa", campus: "Tarkwa", trusted: true },
   { place: "Takoradi Campus", city: "Takoradi", campus: "Takoradi", trusted: true },
 
-  // Ghanaian Off-Campus
   { place: "Accra City", city: "Accra", campus: "Off-Campus", trusted: true },
   { place: "Kumasi City", city: "Kumasi", campus: "Off-Campus", trusted: true },
   { place: "Takoradi Town", city: "Takoradi", campus: "Off-Campus", trusted: true },
 
-  // Untrusted Origins
   { place: "Lagos NG", city: "Lagos", campus: "Off-Campus", trusted: false },
   { place: "Moscow RU", city: "Moscow", campus: "Off-Campus", trusted: false },
   { place: "Beijing CN", city: "Beijing", campus: "Off-Campus", trusted: false },
   { place: "Tor Exit Node", city: "Anon", campus: "Off-Campus", trusted: false }
 ];
 
-// App State
+// Application state
 let currentCampusFilter = "BOTH";
 let isPaused = false;
 let streamTimer = null;
 let requestHistory = [];
 let activeAlerts = [];
 
-let allTelemetry = {
+let telemetryData = {
   BOTH: { total: 0, allow: 0, mfa: 0, deny: 0 },
   Tarkwa: { total: 0, allow: 0, mfa: 0, deny: 0 },
   Takoradi: { total: 0, allow: 0, mfa: 0, deny: 0 }
@@ -118,102 +88,69 @@ let rpsHistory = new Array(60).fill(0);
 let rpsTimer = null;
 let currentSecondRequests = 0;
 
-/**
- * Core Policy Engine — Policy Decision Point (PDP)
- *
- * Implements the trust evaluation logic described in NIST SP 800-207, §3.
- * The PDP receives context about the subject (user), device posture, resource
- * sensitivity, network location, and MFA status. It computes a composite trust
- * score (0–100) by summing weighted context signals.
- *
- * The scoring model uses six signal categories:
- *   1. Device Posture       — Is the endpoint managed and compliant? (§3.3)
- *   2. Network Location     — Is the request from a trusted campus network? (§2.1)
- *   3. User Identity        — Is the subject a verified directory user? (§3.1)
- *   4. MFA Status           — Has the subject completed step-up authentication? (§3.2)
- *   5. Resource Sensitivity — What data classification tier is being accessed? (§2.2)
- *   6. Cross-Campus Context — Novel signal: does the user's home campus match
- *                             the request origin and resource hosting? This accounts
- *                             for UMaT's geographic separation between Tarkwa and Takoradi.
- *
- * Verdict thresholds:
- *   Score >= 70  → ALLOW   (sufficient trust for direct access)
- *   Score 45–69  → STEP-UP MFA (conditional access, require additional verification)
- *   Score <  45  → DENY    (insufficient trust, block the request)
- *
- * @param {Object} userObj      — Subject identity from the user directory
- * @param {Object} deviceObj    — Endpoint posture and compliance status
- * @param {Object} resourceObj  — Target resource with sensitivity tier
- * @param {Object} locationObj  — Network origin and campus association
- * @param {boolean} mfaSatisfied — Whether multi-factor authentication was completed
- * @returns {Object} { score, verdict, factors }
- */
-function evaluateTrustScore(userObj, deviceObj, resourceObj, locationObj, mfaSatisfied) {
-  let score = 50; // Every request starts with a neutral baseline of 50 points
+// Core PDP Policy Engine - Calculates trust score from 0 to 100
+function evaluateTrustScore(user, device, resource, location, mfa) {
+  let score = 50; // Neutral baseline
   const factors = [
     { label: "Baseline System Trust", pts: 50, isPositive: true }
   ];
 
-  // Signal 1: Device Posture (NIST 800-207 §3.3 — Device Health Assessment)
-  if (deviceObj.compliant) {
+  // 1. Device Posture check
+  if (device.compliant) {
     score += 20;
-    factors.push({ label: `Managed Device (${deviceObj.name})`, pts: +20, isPositive: true });
+    factors.push({ label: `Managed Device (${device.name})`, pts: 20, isPositive: true });
   } else {
     score -= 25;
-    factors.push({ label: `Unmanaged Device (${deviceObj.name})`, pts: -25, isPositive: false });
+    factors.push({ label: `Unmanaged Device (${device.name})`, pts: -25, isPositive: false });
   }
 
-  // Signal 2: Network Location (NIST 800-207 §2.1 — Implicit Trust Zones)
-  if (locationObj.trusted) {
+  // 2. Network Location check
+  if (location.trusted) {
     score += 15;
-    factors.push({ label: `Trusted Location (${locationObj.place})`, pts: +15, isPositive: true });
+    factors.push({ label: `Trusted Location (${location.place})`, pts: 15, isPositive: true });
   } else {
     score -= 30;
-    factors.push({ label: `Untrusted Origin (${locationObj.place})`, pts: -30, isPositive: false });
+    factors.push({ label: `Untrusted Origin (${location.place})`, pts: -30, isPositive: false });
   }
 
-  // Signal 3: User Identity (NIST 800-207 §3.1 — Subject Identification)
-  if (userObj.trusted) {
+  // 3. User Identity check
+  if (user.trusted) {
     score += 15;
-    factors.push({ label: `Verified Directory User (${userObj.role})`, pts: +15, isPositive: true });
+    factors.push({ label: `Verified Directory User (${user.role})`, pts: 15, isPositive: true });
   } else {
     score -= 20;
-    factors.push({ label: `Guest / Untrusted Account (${userObj.role})`, pts: -20, isPositive: false });
+    factors.push({ label: `Guest / Untrusted Account (${user.role})`, pts: -20, isPositive: false });
   }
 
-  // Signal 4: Multi-Factor Authentication (NIST 800-207 §3.2 — Continuous Verification)
-  if (mfaSatisfied) {
+  // 4. MFA Verification check
+  if (mfa) {
     score += 15;
-    factors.push({ label: "MFA Challenge Verified", pts: +15, isPositive: true });
+    factors.push({ label: "MFA Challenge Verified", pts: 15, isPositive: true });
   } else {
     score -= 15;
     factors.push({ label: "MFA Missing", pts: -15, isPositive: false });
   }
 
-  // Signal 5: Resource Sensitivity Tier (NIST 800-207 §2.2 — Data Classification)
-  if (resourceObj.tier === 1) {
+  // 5. Resource Sensitivity Tier check
+  if (resource.tier === 1) {
     factors.push({ label: "Low Sensitivity Resource (Tier 1)", pts: 0, isPositive: true });
-  } else if (resourceObj.tier === 2) {
+  } else if (resource.tier === 2) {
     score -= 10;
     factors.push({ label: "Medium Sensitivity Resource (Tier 2)", pts: -10, isPositive: false });
-  } else if (resourceObj.tier === 3) {
+  } else if (resource.tier === 3) {
     score -= 25;
     factors.push({ label: "High Sensitivity Resource (Tier 3)", pts: -25, isPositive: false });
   }
 
-  // Signal 6: Cross-Campus Context — UMaT-specific extension
-  // This is not part of the standard NIST framework. It penalises requests where
-  // a user's home campus does not match their current location or the campus
-  // hosting the target resource. This captures the trust gap created by UMaT's
-  // geographic separation (~90 km Tarkwa ↔ Takoradi).
-  const userHome = userObj.homeCampus;
-  const locCampus = locationObj.campus;
-  const resHosting = resourceObj.hosting;
+  // 6. Cross-Campus Context (Tarkwa vs Takoradi)
+  const userHome = user.homeCampus;
+  const locCampus = location.campus;
+  const resHosting = resource.hosting;
 
   if (locCampus !== "Off-Campus") {
     if (locCampus === userHome) {
       score += 10;
-      factors.push({ label: `Home Campus Match (${userHome})`, pts: +10, isPositive: true });
+      factors.push({ label: `Home Campus Match (${userHome})`, pts: 10, isPositive: true });
     } else if (userHome !== "Off-Campus") {
       score -= 15;
       factors.push({ label: `Cross-Campus Mismatch (Home: ${userHome}, Current: ${locCampus})`, pts: -15, isCampusPenalty: true });
@@ -225,28 +162,25 @@ function evaluateTrustScore(userObj, deviceObj, resourceObj, locationObj, mfaSat
   } else {
     if (resHosting === userHome) {
       score += 5;
-      factors.push({ label: `Local Resource Match (${resHosting})`, pts: +5, isPositive: true });
+      factors.push({ label: `Local Resource Match (${resHosting})`, pts: 5, isPositive: true });
     } else {
       score -= 20;
-      factors.push({ label: `Cross-Campus Local Resource Attempt (${userHome} → ${resHosting})`, pts: -20, isCampusPenalty: true });
+      factors.push({ label: `Cross-Campus Local Resource Attempt (${userHome} -> ${resHosting})`, pts: -20, isCampusPenalty: true });
     }
   }
 
-  const finalScore = Math.min(100, Math.max(0, score));
+  // Clamp score between 0 and 100
+  score = Math.min(100, Math.max(0, score));
 
+  // Determine verdict
   let verdict = "DENY";
-  if (finalScore >= 70) verdict = "ALLOW";
-  else if (finalScore >= 45) verdict = "STEP-UP MFA";
-  else verdict = "DENY";
+  if (score >= 70) verdict = "ALLOW";
+  else if (score >= 45) verdict = "STEP-UP MFA";
 
-  return {
-    score: finalScore,
-    verdict: verdict,
-    factors: factors
-  };
+  return { score, verdict, factors };
 }
 
-// Lifecycle Initialization
+// Page load initialization
 window.addEventListener("DOMContentLoaded", () => {
   populateTesterDropdowns();
   renderDevicePosture();
@@ -263,8 +197,7 @@ function setCampusFilter(campusName) {
   document.getElementById("btnFilterTakoradi").className = `campus-pill ${campusName === 'Takoradi' ? 'active' : ''}`;
 
   document.getElementById("filterStatusInfo").textContent =
-    campusName === "BOTH" ? "Combined Telemetry (Tarkwa + Takoradi)" :
-      `Scope: ${campusName} Campus Only`;
+    campusName === "BOTH" ? "Combined Telemetry (Tarkwa + Takoradi)" : `Scope: ${campusName} Campus Only`;
 
   updateKpiUI();
   renderStreamTableFiltered();
@@ -367,7 +300,7 @@ function startStreamSimulation() {
   }, 1000);
 }
 
-let trafficMultiplier = 0.90; // Reduced traffic volume by 10%
+let trafficMultiplier = 0.90;
 
 function scheduleNextRequest() {
   if (streamTimer) clearTimeout(streamTimer);
@@ -442,21 +375,21 @@ function generateRandomAccessRequest(overrideData = null) {
 function updateTelemetryCounters(req) {
   const camp = req.primaryCampus;
 
-  allTelemetry.BOTH.total++;
-  if (req.verdict === "ALLOW") allTelemetry.BOTH.allow++;
-  else if (req.verdict === "STEP-UP MFA") allTelemetry.BOTH.mfa++;
-  else allTelemetry.BOTH.deny++;
+  telemetryData.BOTH.total++;
+  if (req.verdict === "ALLOW") telemetryData.BOTH.allow++;
+  else if (req.verdict === "STEP-UP MFA") telemetryData.BOTH.mfa++;
+  else telemetryData.BOTH.deny++;
 
-  if (allTelemetry[camp]) {
-    allTelemetry[camp].total++;
-    if (req.verdict === "ALLOW") allTelemetry[camp].allow++;
-    else if (req.verdict === "STEP-UP MFA") allTelemetry[camp].mfa++;
-    else allTelemetry[camp].deny++;
+  if (telemetryData[camp]) {
+    telemetryData[camp].total++;
+    if (req.verdict === "ALLOW") telemetryData[camp].allow++;
+    else if (req.verdict === "STEP-UP MFA") telemetryData[camp].mfa++;
+    else telemetryData[camp].deny++;
   }
 }
 
 function updateKpiUI() {
-  const stats = allTelemetry[currentCampusFilter];
+  const stats = telemetryData[currentCampusFilter];
 
   const totalEl = document.getElementById("kpiTotalReq");
   const allowEl = document.getElementById("kpiAllowed");
@@ -483,8 +416,8 @@ function updateKpiUI() {
     if (!div) return;
     if (currentCampusFilter === "BOTH") {
       div.style.display = "flex";
-      div.children[0].textContent = `Tarkwa: ${allTelemetry.Tarkwa[keys[index]]}`;
-      div.children[1].textContent = `Takoradi: ${allTelemetry.Takoradi[keys[index]]}`;
+      div.children[0].textContent = `Tarkwa: ${telemetryData.Tarkwa[keys[index]]}`;
+      div.children[1].textContent = `Takoradi: ${telemetryData.Takoradi[keys[index]]}`;
     } else {
       div.style.display = "none";
     }
@@ -513,7 +446,7 @@ function renderStreamTableFiltered() {
     const userCampShort = req.user.homeCampus.replace(" Campus", "");
     const resCampShort = req.resource.hosting;
     const vectorStr = req.isCrossCampus ?
-      `<span class="badge badge-cross">${userCampShort} → ${resCampShort}</span>` :
+      `<span class="badge badge-cross">${userCampShort} -> ${resCampShort}</span>` :
       `<span style="font-size: 11px; color: #94a3b8;">${userCampShort}</span>`;
 
     tr.innerHTML = `
@@ -539,7 +472,7 @@ function animateNistPipeline(req) {
   subjDetail.textContent = `${req.user.id} (${req.user.homeCampus})`;
   resDetail.textContent = `${req.resource.name} [${req.resource.hosting}]`;
 
-  tag.textContent = `PDP Eval: ${req.user.id} → ${req.verdict}`;
+  tag.textContent = `PDP Eval: ${req.user.id} -> ${req.verdict}`;
   if (req.verdict === "ALLOW") {
     tag.style.color = "#34d399";
     tag.style.borderColor = "rgba(16, 185, 129, 0.4)";
@@ -594,7 +527,7 @@ function evaluateSecurityAlerts(latestReq) {
     });
   }
 
-  // Brute force threshold check
+  // Repeated denies threshold
   const recentUserDenies = requestHistory.filter(r =>
     r.user.id === latestReq.user.id &&
     (Date.now() - r.timestampMs) < 120000 &&
@@ -892,9 +825,6 @@ function switchTab(tabId) {
   }
 }
 
-/**
- * Toggles the visibility of the About modal overlay.
- */
 function toggleAboutModal() {
   const modal = document.getElementById("aboutModal");
   if (modal) {

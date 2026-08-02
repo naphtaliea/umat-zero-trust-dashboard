@@ -126,7 +126,7 @@ zero-trust-dashboard/
 
 ## Author
 
-**Naphtalie A**
+**Amemo Naphtalie**
 University of Mines and Technology, Tarkwa
 © 2026
 
